@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的旅遊行程</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌍 我的旅遊行程</h1>
+        </header>
+
+        <!-- 新增表單 -->
+        <section class="add-form">
+            <h2>新增行程</h2>
+            <form id="tripForm">
+                <div class="form-group">
+                    <label for="tripName">行程名稱</label>
+                    <input type="text" id="tripName" placeholder="例如：日本東京五日遊" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="startDate">開始日期</label>
+                        <input type="date" id="startDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate">結束日期</label>
+                        <input type="date" id="endDate">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">新增行程</button>
+            </form>
+        </section>
+
+        <!-- 行程列表 -->
+        <section class="trips-section">
+            <h2>所有行程</h2>
+            <div id="tripsList" class="trips-list">
+                <div class="loading">載入中...</div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div id="toast" class="toast"></div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
+</body>
+</html>
