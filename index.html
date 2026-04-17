@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅遊行程規劃 - 即時協作</title>
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places,directions"></script>
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>✈️ 旅遊行程規劃</h1>
+            <div class="header-controls">
+                <input type="text" id="tripName" placeholder="行程名稱" class="trip-input">
+                <button id="createTripBtn" class="btn btn-primary">建立新行程</button>
+                <select id="tripSelect" class="trip-select">
+                    <option value="">選擇現有行程</option>
+                </select>
+                <span id="collaborators" class="collaborators"></span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- 左側：行程列表 -->
+            <aside class="sidebar">
+                <div class="date-picker">
+                    <h3>日期範圍</h3>
+                    <input type="date" id="startDate" class="date-input">
+                    <span>至</span>
+                    <input type="date" id="endDate" class="date-input">
+                    <button id="updateDatesBtn" class="btn btn-secondary">更新日期</button>
+                </div>
+
+                <div class="days-list" id="daysList">
+                    <!-- 動態生成每天 -->
+                </div>
+            </aside>
+
+            <!-- 右側：詳細行程 + 地圖 -->
+            <main class="main-panel">
+                <!-- 時間軸視圖 -->
+                <div class="timeline-section">
+                    <h2 id="currentDayTitle">選擇日期</h2>
+                    
+                    <div class="timeline-container">
+                        <div class="activities-list" id="activitiesList">
+                            <!-- 動態生成當日活動 -->
+                        </div>
+
+                        <button id="addActivityBtn" class="btn btn-primary btn-add-activity">
+                            + 新增活動
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 地圖視圖 -->
+                <div class="map-section">
+                    <div id="map" class="map-container"></div>
+                    <div class="map-controls">
+                        <button id="showRouteBtn" class="btn btn-secondary">顯示路線</button>
+                        <button id="clearRouteBtn" class="btn btn-secondary">清除路線</button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 活動編輯 Modal -->
+    <div id="activityModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>編輯活動</h2>
+            
+            <form id="activityForm">
+                <div class="form-group">
+                    <label>活動名稱</label>
+                    <input type="text" id="activityName" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>開始時間</label>
+                        <input type="time" id="activityStartTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label>結束時間</label>
+                        <input type="time" id="activityEndTime" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>地點</label>
+                    <input type="text" id="activityLocation" placeholder="輸入地點..." required>
+                    <div id="locationSuggestions" class="suggestions"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>經度</label>
+                    <input type="number" id="activityLng" step="0.0001" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label>緯度</label>
+                    <input type="number" id="activityLat" step="0.0001" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label>描述</label>
+                    <textarea id="activityDescription" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>費用 (USD)</label>
+                    <input type="number" id="activityCost" step="0.01" min="0">
+                </div>
+
+                <!-- 憑證連結 -->
+                <div class="credentials-section">
+                    <h3>憑證連結</h3>
+                    <div id="credentialsList"></div>
+                    <button type="button" id="addCredentialBtn" class="btn btn-secondary">
+                        + 新增憑證
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label>備註</label>
+                    <input type="text" id="activityNotes">
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">保存</button>
+                    <button type="button" id="deleteActivityBtn" class="btn btn-danger">刪除</button>
+                    <button type="button" class="btn btn-secondary close-modal">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 憑證編輯 Modal -->
+    <div id="credentialModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>編輯憑證</h2>
+            
+            <form id="credentialForm">
+                <div class="form-group">
+                    <label>憑證類型</label>
+                    <select id="credentialType" required>
+                        <option value="">選擇類型</option>
+                        <option value="hotel">飯店預訂</option>
+                        <option value="flight">機票</option>
+                        <option value="ticket">景點門票</option>
+                        <option value="restaurant">餐廳訂位</option>
+                        <option value="car">租車</option>
+                        <option value="other">其他</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>名稱</label>
+                    <input type="text" id="credentialName" required>
+                </div>
+
+                <div class="form-group">
+                    <label>確認號碼</label>
+                    <input type="text" id="credentialCode">
+                </div>
+
+                <div class="form-group">
+                    <label>連結 URL</label>
+                    <input type="url" id="credentialUrl" required>
+                </div>
+
+                <div class="form-group">
+                    <label>備註</label>
+                    <textarea id="credentialNotes" rows="2"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">保存</button>
+                    <button type="button" class="btn btn-secondary close-modal">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 通知 Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
